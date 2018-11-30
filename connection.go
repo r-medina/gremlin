@@ -5,13 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"net"
-	"net/http"
 	"net/url"
 	"os"
 	"strings"
 	"time"
 
-	"github.com/gorilla/websocket"
+	"golang.org/x/net/websocket"
 )
 
 // Clients include the necessary info to connect to the server and the underlying socket
@@ -26,11 +25,12 @@ func NewClient(urlStr string, options ...OptAuth) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	dialer := websocket.Dialer{}
-	ws, _, err := dialer.Dial(urlStr, http.Header{})
+
+	ws, err := websocket.Dial(r.String(), "", r.Scheme+"://"+r.Hostname())
 	if err != nil {
 		return nil, err
 	}
+
 	return &Client{Remote: r, Ws: ws, Auth: options}, nil
 }
 
@@ -47,27 +47,23 @@ func (c *Client) Exec(req *Request) ([]byte, error) {
 	}
 
 	// Open a TCP connection
-	if err = c.Ws.WriteMessage(websocket.BinaryMessage, requestMessage); err != nil {
-		print("error", err)
+	if err := websocket.Message.Send(c.Ws, requestMessage); err != nil {
 		return nil, err
 	}
 	return c.ReadResponse()
 }
 
 func (c *Client) ReadResponse() (data []byte, err error) {
-	// Data buffer
-	var message []byte
 	var dataItems []json.RawMessage
 	inBatchMode := false
 	// Receive data
 	for {
-		if _, message, err = c.Ws.ReadMessage(); err != nil {
-			return
-		}
 		var res *Response
-		if err = json.Unmarshal(message, &res); err != nil {
+		decoder := json.NewDecoder(c.Ws)
+		if err = decoder.Decode(&res); err != nil {
 			return
 		}
+
 		var items []json.RawMessage
 		switch res.Status.Code {
 		case StatusNoContent:
