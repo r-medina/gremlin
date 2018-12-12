@@ -91,11 +91,7 @@ func (c *Client) ReadResponse() (data []byte, err error) {
 			return
 
 		default:
-			if msg, exists := ErrorMsg[res.Status.Code]; exists {
-				err = errors.New(msg)
-			} else {
-				err = errors.New("An unknown error occured")
-			}
+			err = newResponseError(res.Status.Code, res.Status.Message)
 			return
 		}
 	}
