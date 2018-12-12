@@ -26,3 +26,28 @@ type ResponseResult struct {
 func (r Response) String() string {
 	return fmt.Sprintf("Response \nRequestId: %v, \nStatus: {%#v}, \nResult: {%#v}\n", r.RequestId, r.Status, r.Result)
 }
+
+// ResponseError represents the information returned from a Gremlin server in
+// the event of an error.
+type ResponseError struct {
+	Code    int
+	Name    string
+	Message string
+}
+
+func newResponseError(code int, msg string) error {
+	name, ok := ErrorMsg[code]
+	if !ok {
+		name = "Unkown Error"
+	}
+
+	return &ResponseError{
+		Code:    code,
+		Name:    name,
+		Message: msg,
+	}
+}
+
+func (err *ResponseError) Error() string {
+	return fmt.Sprintf("%s: %d: %s", err.Name, err.Code, err.Message)
+}
